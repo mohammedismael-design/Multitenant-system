@@ -1,0 +1,17 @@
+{
+    "name": "Core",
+    "key": "core",
+    "icon": "HomeIcon",
+    "description": "Core platform module — always enabled",
+    "version": "1.0.0",
+    "allowed_tenant_types": ["school", "business", "ngo", "church"],
+    "dependencies": [],
+    "permissions": [
+        "core:access_dashboard",
+        "core:manage_settings",
+        "core:manage_users"
+    ],
+    "settings_schema": {},
+    "sort_order": 0,
+    "is_core": true
+}
