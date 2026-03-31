@@ -15,18 +15,11 @@ export function useSubscriptionLimits() {
             };
         }
 
-        const full = tenant as unknown as {
-            max_users?: number;
-            max_storage_mb?: number;
-            subscription_status?: string;
-            status?: string;
-        };
-
         return {
-            maxUsers: full.max_users ?? 0,
-            maxStorageMb: full.max_storage_mb ?? 0,
-            isTrialing: full.subscription_status === 'trial',
-            isActive: full.status === 'active',
+            maxUsers: tenant.max_users,
+            maxStorageMb: tenant.max_storage_mb,
+            isTrialing: tenant.subscription_status === 'trial',
+            isActive: tenant.status === 'active',
         };
     }, [tenant]);
 }
