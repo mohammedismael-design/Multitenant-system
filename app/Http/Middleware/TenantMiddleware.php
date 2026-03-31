@@ -30,14 +30,18 @@ class TenantMiddleware
         if (class_exists(\Inertia\Inertia::class)) {
             \Inertia\Inertia::share([
                 'tenant' => [
-                    'id'              => $tenant->id,
-                    'name'            => $tenant->name,
-                    'slug'            => $tenant->slug,
-                    'type'            => $tenant->type,
-                    'primary_color'   => $tenant->primary_color,
-                    'secondary_color' => $tenant->secondary_color,
-                    'logo'            => $tenant->logo,
-                    'favicon'         => $tenant->favicon,
+                    'id'                  => $tenant->id,
+                    'name'                => $tenant->name,
+                    'slug'                => $tenant->slug,
+                    'type'                => $tenant->type,
+                    'primary_color'       => $tenant->primary_color,
+                    'secondary_color'     => $tenant->secondary_color,
+                    'logo'                => $tenant->logo,
+                    'favicon'             => $tenant->favicon,
+                    'subscription_status' => $tenant->subscription_status,
+                    'status'              => $tenant->status,
+                    'max_users'           => $tenant->max_users,
+                    'max_storage_mb'      => $tenant->max_storage_mb,
                 ],
             ]);
         }

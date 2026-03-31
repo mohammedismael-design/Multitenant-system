@@ -39,4 +39,8 @@ export interface TenantSharedProps {
     secondary_color: string;
     logo: string | null;
     favicon: string | null;
+    subscription_status: SubscriptionStatus;
+    status: TenantStatus;
+    max_users: number;
+    max_storage_mb: number;
 }

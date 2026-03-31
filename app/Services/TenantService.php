@@ -83,7 +83,12 @@ class TenantService
     public function clearTenantCache(Tenant $tenant): void
     {
         Cache::forget("tenant_slug_{$tenant->slug}");
-        Cache::forget("tenant_host_{$tenant->slug}");
+
+        // Reconstruct the subdomain host key exactly as resolveFromHost() builds it
+        $appHost = parse_url(config('app.url'), PHP_URL_HOST);
+        if ($appHost) {
+            Cache::forget("tenant_host_{$tenant->slug}.{$appHost}");
+        }
 
         $customDomain = $tenant->settings['custom_domain'] ?? null;
         if ($customDomain) {

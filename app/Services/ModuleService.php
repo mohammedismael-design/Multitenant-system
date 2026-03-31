@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Module;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
 class ModuleService
@@ -60,7 +61,7 @@ class ModuleService
             );
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($tenant, $module, $settings) {
+        DB::transaction(function () use ($tenant, $module, $settings) {
             // Recursively enable all dependencies first
             foreach ($module->dependencies ?? [] as $depKey) {
                 $dep = Module::where('key', $depKey)->first();
@@ -93,9 +94,22 @@ class ModuleService
 
     /**
      * Disable a module for a tenant.
+     * Throws if another enabled module depends on this one.
      */
     public function disableModule(Tenant $tenant, Module $module): void
     {
+        // Check that no other enabled module depends on this one
+        $dependents = $tenant->enabledModules()
+            ->get()
+            ->filter(fn (Module $m) => in_array($module->key, $m->dependencies ?? []));
+
+        if ($dependents->isNotEmpty()) {
+            $keys = $dependents->pluck('key')->implode(', ');
+            throw new \RuntimeException(
+                "Cannot disable [{$module->key}]: it is required by [{$keys}]."
+            );
+        }
+
         $tenant->modules()->updateExistingPivot($module->id, ['is_enabled' => false]);
         $this->clearModuleCache($tenant);
     }
@@ -120,6 +134,7 @@ class ModuleService
 
     /**
      * Register or update a module from its module.json manifest.
+     * Also seeds Spatie permission rows for every permission in the manifest.
      */
     public function registerFromManifest(string $moduleName): Module
     {
@@ -131,7 +146,7 @@ class ModuleService
 
         $manifest = json_decode(File::get($manifestPath), true);
 
-        return Module::updateOrCreate(
+        $module = Module::updateOrCreate(
             ['key' => $manifest['key']],
             [
                 'name'                  => $manifest['name'],
@@ -147,6 +162,11 @@ class ModuleService
                 'is_globally_disabled'  => false,
             ]
         );
+
+        // Seed Spatie permission rows for every permission declared in the manifest
+        app(PermissionService::class)->syncModulePermissions($module);
+
+        return $module;
     }
 
     /**
