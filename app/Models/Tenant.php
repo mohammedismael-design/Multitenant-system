@@ -102,4 +102,34 @@ class Tenant extends Model
             ->where('key', $moduleKey)
             ->exists();
     }
+
+    /**
+     * Get the per-tenant settings for a specific module.
+     */
+    public function getModuleSettings(string $moduleKey): array
+    {
+        $pivot = $this->modules()
+            ->where('key', $moduleKey)
+            ->first()?->pivot;
+
+        if (!$pivot) {
+            return [];
+        }
+
+        $settings = $pivot->settings;
+
+        return is_array($settings) ? $settings : (json_decode($settings, true) ?? []);
+    }
+
+    /**
+     * Persist per-tenant settings for a specific module.
+     */
+    public function setModuleSettings(string $moduleKey, array $settings): void
+    {
+        $module = $this->modules()->where('key', $moduleKey)->first();
+
+        if ($module) {
+            $this->modules()->updateExistingPivot($module->id, ['settings' => $settings]);
+        }
+    }
 }

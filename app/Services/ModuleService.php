@@ -24,7 +24,33 @@ class ModuleService
     }
 
     /**
+     * Check whether all dependencies of a module are enabled for the tenant.
+     */
+    public function canEnableModule(Module $module, Tenant $tenant): bool
+    {
+        foreach ($module->dependencies ?? [] as $depKey) {
+            $dep = Module::where('key', $depKey)->first();
+
+            if (!$dep) {
+                return false;
+            }
+
+            $enabled = $tenant->modules()
+                ->where('modules.id', $dep->id)
+                ->wherePivot('is_enabled', true)
+                ->exists();
+
+            if (!$enabled) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Enable a module for a tenant (with optional settings).
+     * Dependencies are enabled automatically in a transaction.
      */
     public function enableModule(Tenant $tenant, Module $module, array $settings = []): void
     {
@@ -34,14 +60,35 @@ class ModuleService
             );
         }
 
-        $tenant->modules()->syncWithoutDetaching([
-            $module->id => [
-                'is_enabled' => true,
-                'settings'   => $settings,
-            ],
-        ]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($tenant, $module, $settings) {
+            // Recursively enable all dependencies first
+            foreach ($module->dependencies ?? [] as $depKey) {
+                $dep = Module::where('key', $depKey)->first();
+                if ($dep && !$this->isModuleEnabled($tenant, $depKey)) {
+                    $this->enableModule($tenant, $dep);
+                }
+            }
+
+            $tenant->modules()->syncWithoutDetaching([
+                $module->id => [
+                    'is_enabled' => true,
+                    'settings'   => $settings,
+                ],
+            ]);
+        });
 
         $this->clearModuleCache($tenant);
+    }
+
+    /**
+     * Check if a specific module key is currently enabled for a tenant.
+     */
+    public function isModuleEnabled(Tenant $tenant, string $moduleKey): bool
+    {
+        return $tenant->modules()
+            ->where('key', $moduleKey)
+            ->wherePivot('is_enabled', true)
+            ->exists();
     }
 
     /**
