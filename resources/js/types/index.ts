@@ -86,3 +86,41 @@ export interface FlashMessages {
     info?: string;
     warning?: string;
 }
+
+// ─── Activity / Security Log types ───────────────────────────────────────────
+
+export interface ActivityLogEntry {
+  id: number;
+  log_name: string;
+  description: string;
+  subject_type: string | null;
+  subject_id: number | null;
+  causer_type: string | null;
+  causer_id: number | null;
+  event: string | null;
+  tenant_id: number | null;
+  created_at: string;
+}
+
+export interface RateLimitLogEntry {
+  id: number;
+  ip_address: string;
+  endpoint: string;
+  method: string;
+  rate_limit_type: string;
+  requests_count: number;
+  limit_value: number;
+  blocked_at: string;
+  tenant: { name: string } | null;
+  user: { name: string; email: string } | null;
+}
+
+export interface IpBlacklistRecord {
+  id: number;
+  ip_address: string;
+  reason: string | null;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
+  blocked_by: { name: string } | null;
+}

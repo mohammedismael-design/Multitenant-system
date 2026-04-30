@@ -1,62 +1,73 @@
 import React from 'react';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import SuperAdminLayout from '@/layouts/SuperAdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/formatters';
-import { Edit } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { TenantInfoCard } from './TenantInfoCard';
+import { TenantModules } from './TenantModules';
 import type { Tenant, PageProps } from '@/types';
 
+interface TenantModuleEntry {
+  id: number; name: string; key: string; is_active: boolean;
+}
+
+interface TenantUser {
+  id: number; name: string; email: string; is_active: boolean;
+}
+
 interface ShowTenantProps extends PageProps {
-    tenant: Tenant;
+  tenant: Tenant;
+  tenantModules: TenantModuleEntry[];
+  tenantUsers: TenantUser[];
 }
 
 export default function ShowTenant() {
-    const { tenant } = usePage<ShowTenantProps>().props;
+  const { tenant, tenantModules, tenantUsers } = usePage<ShowTenantProps>().props;
 
-    return (
-        <SuperAdminLayout title={tenant.name}>
-            <Head title={tenant.name} />
-            <div className="flex justify-end mb-4">
-                <Link href={`/super-admin/tenants/${tenant.id}/edit`}>
-                    <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit</Button>
-                </Link>
-            </div>
-            <div className="grid gap-6 lg:grid-cols-2">
-                <Card>
-                    <CardHeader><CardTitle>General</CardTitle></CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                        <Row label="Name"     value={tenant.name} />
-                        <Row label="Slug"     value={tenant.slug} />
-                        <Row label="Type"     value={tenant.type} />
-                        <Row label="Email"    value={tenant.email} />
-                        <Row label="Phone"    value={tenant.phone} />
-                        <Row label="Status"   value={tenant.status} />
-                        <Row label="Created"  value={formatDate(tenant.created_at)} />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader><CardTitle>Subscription</CardTitle></CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                        <Row label="Plan"     value={String(tenant.subscription_plan_id ?? '—')} />
-                        <Row label="Status"   value={tenant.subscription_status} />
-                        <Row label="Start"    value={formatDate(tenant.subscription_start_date)} />
-                        <Row label="End"      value={formatDate(tenant.subscription_end_date)} />
-                        <Row label="Cycle"    value={tenant.billing_cycle ?? '—'} />
-                        <Row label="Max Users"     value={String(tenant.max_users)} />
-                        <Row label="Max Storage"   value={`${tenant.max_storage_mb} MB`} />
-                    </CardContent>
-                </Card>
-            </div>
-        </SuperAdminLayout>
-    );
-}
+  return (
+    <SuperAdminLayout>
+      <Head title={tenant.name} />
+      <PageHeader
+        title={tenant.name}
+        breadcrumbs={[{ label: 'Tenants', href: '/super-admin/tenants' }, { label: tenant.name }]}
+      />
+      <div className="space-y-6">
+        <TenantInfoCard tenant={tenant} />
+        <TenantModules tenantId={tenant.id} modules={tenantModules ?? []} />
 
-function Row({ label, value }: { label: string; value?: string | null }) {
-    return (
-        <div className="flex gap-2">
-            <span className="w-32 shrink-0 font-medium text-gray-500">{label}</span>
-            <span className="text-gray-900">{value ?? '—'}</span>
+        {/* Users table */}
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-6 py-4">
+            <h3 className="text-base font-semibold text-gray-900">Users ({(tenantUsers ?? []).length})</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th className="px-6 py-3 text-left">Name</th>
+                  <th className="px-6 py-3 text-left">Email</th>
+                  <th className="px-6 py-3 text-left">Active</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {(tenantUsers ?? []).map((u) => (
+                  <tr key={u.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-3 font-medium text-gray-900">{u.name}</td>
+                    <td className="px-6 py-3 text-gray-500">{u.email}</td>
+                    <td className="px-6 py-3">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${u.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                        {u.is_active ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {(tenantUsers ?? []).length === 0 && (
+                  <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-400">No users</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-    );
+      </div>
+    </SuperAdminLayout>
+  );
 }
