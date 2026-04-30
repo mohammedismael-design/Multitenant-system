@@ -42,6 +42,15 @@ final class NotificationService
     public function markAsRead(string $notificationId): void
     {
         $notification = Notification::withoutGlobalScopes()->findOrFail($notificationId);
+
+        // Ensure the notification belongs to the current tenant when one is bound.
+        if (app()->has('tenant') && app('tenant') !== null) {
+            $tenantId = app('tenant')->id;
+            if ((string) $notification->tenant_id !== (string) $tenantId) {
+                abort(403, 'You do not have access to this notification.');
+            }
+        }
+
         $notification->markAsRead();
     }
 

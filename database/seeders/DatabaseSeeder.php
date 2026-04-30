@@ -2,12 +2,15 @@
 
 namespace Database\Seeders;
 
+use App\Models\Module;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\ModuleService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,6 +21,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create Spatie roles
+        foreach (['super_admin', 'soc_admin', 'tenant_admin', 'staff'] as $role) {
+            Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
+        }
+
         // Create a demo subscription plan
         $plan = SubscriptionPlan::firstOrCreate(
             ['code' => 'demo'],
@@ -54,7 +62,7 @@ class DatabaseSeeder extends Seeder
         );
 
         // Create a super-admin user (no tenant scope)
-        User::firstOrCreate(
+        $superAdmin = User::withoutGlobalScopes()->firstOrCreate(
             ['email' => 'superadmin@schoolzee.test'],
             [
                 'name'      => 'Super Admin',
@@ -63,9 +71,22 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+        $superAdmin->syncRoles(['super_admin']);
+
+        // Create a SOC admin user (no tenant scope)
+        $socAdmin = User::withoutGlobalScopes()->firstOrCreate(
+            ['email' => 'soc@schoolzee.test'],
+            [
+                'name'      => 'SOC Admin',
+                'password'  => Hash::make('password'),
+                'user_type' => 'soc_admin',
+                'is_active' => true,
+            ]
+        );
+        $socAdmin->syncRoles(['soc_admin']);
 
         // Create a tenant admin for the demo school
-        User::firstOrCreate(
+        $tenantAdmin = User::withoutGlobalScopes()->firstOrCreate(
             ['email' => 'admin@demo.test'],
             [
                 'tenant_id' => $tenant->id,
@@ -75,5 +96,20 @@ class DatabaseSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+        $tenantAdmin->syncRoles(['tenant_admin']);
+
+        // Register the Core module from its module.json and enable it for the demo tenant
+        $moduleService = app(ModuleService::class);
+
+        if (file_exists(app_path('Modules/Core/module.json'))) {
+            $coreModule = $moduleService->registerFromManifest('Core');
+
+            if (!$tenant->modules()->where('modules.id', $coreModule->id)->exists()) {
+                $tenant->modules()->attach($coreModule->id, ['is_enabled' => true]);
+            } else {
+                $tenant->modules()->updateExistingPivot($coreModule->id, ['is_enabled' => true]);
+            }
+        }
     }
 }
+

@@ -35,5 +35,12 @@ class CoreServiceProvider extends ServiceProvider
                 HorizonQueueMonitor::class,
             ]);
         }
+
+        // Restrict Horizon dashboard access to super admins only
+        if (class_exists(\Laravel\Horizon\Horizon::class)) {
+            \Laravel\Horizon\Horizon::auth(function ($request) {
+                return $request->user() && $request->user()->user_type === 'super_admin';
+            });
+        }
     }
 }

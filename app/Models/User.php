@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Traits\HasModulePermissions;
 use App\Models\Traits\HasProfile;
 use App\Models\Traits\HasTenant;
+use App\Modules\Core\Scopes\TenantScope;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -48,5 +49,12 @@ class User extends Authenticatable
             'settings'          => 'array',
             'is_active'         => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Only apply TenantScope when a tenant is actually bound so that
+        // super-admin queries (tenant_id = null) are not incorrectly scoped.
+        static::addGlobalScope(new TenantScope());
     }
 }
