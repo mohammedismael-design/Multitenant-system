@@ -131,50 +131,62 @@ final class TenantRateLimiter
     }
 
     // ---------------------------------------------------------------
-    // Token Bucket (atomic via Redis MULTI/EXEC)
+    // Token Bucket — atomic via Lua script (executes as single Redis command)
     // ---------------------------------------------------------------
 
     private function tokenBucket(string $key, int $capacity, int $refillPerMinute): array
     {
-        $ttl         = (int) ceil(($capacity / $refillPerMinute) * 60 * 2);
-        $refillRate  = $refillPerMinute / 60.0; // tokens per second
-        $nowMs       = (int) (microtime(true) * 1000);
+        $ttl        = (int) ceil(($capacity / $refillPerMinute) * 60 * 2);
+        $refillRate = $refillPerMinute / 60.0; // tokens per second
+        $nowMs      = (int) (microtime(true) * 1000);
 
-        $tokensKey    = "{$key}:tokens";
+        $tokensKey     = "{$key}:tokens";
         $lastRefillKey = "{$key}:last_refill";
 
-        // Use Redis pipeline for atomic read-compute-write
-        $redis = Redis::connection('default')->client();
+        // Lua script executes atomically; no WATCH needed
+        $lua = <<<'LUA'
+local tokens_key      = KEYS[1]
+local last_refill_key = KEYS[2]
+local capacity        = tonumber(ARGV[1])
+local refill_rate     = tonumber(ARGV[2])
+local now_ms          = tonumber(ARGV[3])
+local ttl             = tonumber(ARGV[4])
 
-        $redis->watch($tokensKey, $lastRefillKey);
+local current_tokens = tonumber(redis.call('GET', tokens_key)) or capacity
+local last_refill    = tonumber(redis.call('GET', last_refill_key)) or now_ms
 
-        $currentTokens = (float) ($redis->get($tokensKey) ?? $capacity);
-        $lastRefill    = (int) ($redis->get($lastRefillKey) ?? $nowMs);
+local elapsed   = math.max(0, (now_ms - last_refill) / 1000.0)
+local new_tokens = math.min(capacity, current_tokens + elapsed * refill_rate)
 
-        $elapsed       = max(0, ($nowMs - $lastRefill) / 1000.0); // seconds
-        $tokensToAdd   = $elapsed * $refillRate;
-        $newTokens     = min($capacity, $currentTokens + $tokensToAdd);
+if new_tokens < 1 then
+    local retry_after = math.ceil((1 - new_tokens) / refill_rate)
+    return {0, 0, retry_after}
+end
 
-        if ($newTokens < 1) {
-            $redis->unwatch();
-            $retryAfter = (int) ceil((1 - $newTokens) / $refillRate);
+new_tokens = new_tokens - 1
 
-            return ['allowed' => false, 'remaining' => 0, 'retry_after' => $retryAfter];
-        }
+redis.call('SETEX', tokens_key,     ttl, tostring(new_tokens))
+redis.call('SETEX', last_refill_key, ttl, tostring(now_ms))
 
-        $newTokens -= 1;
+return {1, math.floor(new_tokens), 0}
+LUA;
 
-        $pipe = $redis->multi(\Redis::MULTI);
-        $pipe->setex($tokensKey, $ttl, (string) $newTokens);
-        $pipe->setex($lastRefillKey, $ttl, (string) $nowMs);
-        $result = $pipe->exec();
+        $result = Redis::connection('default')->eval(
+            $lua,
+            2,
+            $tokensKey,
+            $lastRefillKey,
+            $capacity,
+            $refillRate,
+            $nowMs,
+            $ttl,
+        );
 
-        if ($result === false || $result === null) {
-            // WATCH conflict — treat as allowed and let next request settle
-            return ['allowed' => true, 'remaining' => (int) $newTokens, 'retry_after' => 0];
-        }
-
-        return ['allowed' => true, 'remaining' => (int) $newTokens, 'retry_after' => 0];
+        return [
+            'allowed'     => (bool) ($result[0] ?? false),
+            'remaining'   => (int) ($result[1] ?? 0),
+            'retry_after' => (int) ($result[2] ?? 0),
+        ];
     }
 
     // ---------------------------------------------------------------

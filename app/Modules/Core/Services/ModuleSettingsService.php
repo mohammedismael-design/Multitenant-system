@@ -49,15 +49,21 @@ final class ModuleSettingsService
             throw new InvalidSettingException("Module '{$moduleKey}' not found.");
         }
 
-        // Use PostgreSQL jsonb_set to merge a single key without overwriting the entire JSONB
+        // Read current settings, merge the new key in PHP, and write back
+        // using a parameterized query — avoids raw SQL injection risk.
+        $pivot = DB::table('module_tenant')
+            ->where('tenant_id', $tenantId)
+            ->where('module_id', $module->id)
+            ->value('settings');
+
+        $current = $pivot ? (json_decode($pivot, true) ?? []) : [];
+        $current[$settingKey] = $value;
+        $merged = json_encode($current, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
         DB::table('module_tenant')
             ->where('tenant_id', $tenantId)
             ->where('module_id', $module->id)
-            ->update([
-                'settings' => DB::raw(
-                    "jsonb_set(COALESCE(settings, '{}'), '{" . addslashes($settingKey) . "}', '" . json_encode($value) . "'::jsonb)"
-                ),
-            ]);
+            ->update(['settings' => $merged]);
 
         Cache::forget("module_settings:{$tenantId}:{$moduleKey}");
     }
