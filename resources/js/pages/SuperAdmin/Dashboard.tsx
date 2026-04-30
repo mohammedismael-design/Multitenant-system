@@ -29,14 +29,14 @@ interface SuperAdminDashboardProps extends PageProps {
 
 export default function SuperAdminDashboard() {
   const { stats } = usePage<SuperAdminDashboardProps>().props;
-  const s = stats ?? {} as DashboardStats;
+  const dashboardStats = stats ?? {} as DashboardStats;
 
   const statCards = [
-    { label: 'Total Tenants',  value: s.total_tenants  ?? 0, icon: Building2,    color: 'text-blue-600',   href: '/super-admin/tenants' },
-    { label: 'Active Tenants', value: s.active_tenants ?? 0, icon: CheckCircle,  color: 'text-green-600',  href: '/super-admin/tenants' },
-    { label: 'Total Users',    value: s.total_users    ?? 0, icon: Users,         color: 'text-indigo-600', href: '/super-admin/users' },
-    { label: 'Total Modules',  value: s.total_modules  ?? 0, icon: Package,       color: 'text-purple-600', href: '/super-admin/modules' },
-    { label: 'Active Plans',   value: s.active_plans   ?? 0, icon: CreditCard,    color: 'text-yellow-600', href: '/super-admin/plans' },
+    { label: 'Total Tenants',  value: dashboardStats.total_tenants  ?? 0, icon: Building2,    color: 'text-blue-600',   href: '/super-admin/tenants' },
+    { label: 'Active Tenants', value: dashboardStats.active_tenants ?? 0, icon: CheckCircle,  color: 'text-green-600',  href: '/super-admin/tenants' },
+    { label: 'Total Users',    value: dashboardStats.total_users    ?? 0, icon: Users,         color: 'text-indigo-600', href: '/super-admin/users' },
+    { label: 'Total Modules',  value: dashboardStats.total_modules  ?? 0, icon: Package,       color: 'text-purple-600', href: '/super-admin/modules' },
+    { label: 'Active Plans',   value: dashboardStats.active_plans   ?? 0, icon: CreditCard,    color: 'text-yellow-600', href: '/super-admin/plans' },
   ];
 
   return (
@@ -68,14 +68,14 @@ export default function SuperAdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {(s.recent_tenants ?? []).map((t) => (
+                {(dashboardStats.recent_tenants ?? []).map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50">
                     <td className="px-6 py-3 font-medium text-gray-900">{t.name}</td>
                     <td className="px-6 py-3"><StatusBadge status={t.status} /></td>
                     <td className="px-6 py-3 text-gray-500">{formatDate(t.created_at)}</td>
                   </tr>
                 ))}
-                {(s.recent_tenants ?? []).length === 0 && (
+                {(dashboardStats.recent_tenants ?? []).length === 0 && (
                   <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-400">No tenants yet</td></tr>
                 )}
               </tbody>

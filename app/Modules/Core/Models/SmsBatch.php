@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Models;
 
 use App\Models\Tenant;
+use App\Modules\Core\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -13,7 +14,6 @@ final class SmsBatch extends Model
     protected $table = 'sms_batches';
 
     protected $fillable = [
-        'tenant_id',
         'message',
         'recipients',
         'recipient_count',
@@ -23,6 +23,11 @@ final class SmsBatch extends Model
         'provider_batch_id',
         'sent_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new TenantScope());
+    }
 
     protected function casts(): array
     {

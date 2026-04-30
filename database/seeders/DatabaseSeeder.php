@@ -86,16 +86,18 @@ class DatabaseSeeder extends Seeder
         $socAdmin->syncRoles(['soc_admin']);
 
         // Create a tenant admin for the demo school
-        $tenantAdmin = User::withoutGlobalScopes()->firstOrCreate(
-            ['email' => 'admin@demo.test'],
-            [
-                'tenant_id' => $tenant->id,
+        $tenantAdmin = User::withoutGlobalScopes()->where('email', 'admin@demo.test')->first();
+        if (!$tenantAdmin) {
+            $tenantAdmin = new User([
                 'name'      => 'Demo Admin',
                 'password'  => Hash::make('password'),
                 'user_type' => 'tenant_admin',
                 'is_active' => true,
-            ]
-        );
+                'email'     => 'admin@demo.test',
+            ]);
+            $tenantAdmin->tenant_id = $tenant->id;
+            $tenantAdmin->save();
+        }
         $tenantAdmin->syncRoles(['tenant_admin']);
 
         // Register the Core module from its module.json and enable it for the demo tenant

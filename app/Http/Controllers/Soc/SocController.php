@@ -23,6 +23,9 @@ class SocController extends Controller
                 ->count(),
             'failed_jobs_count'    => DB::table('failed_jobs')->count(),
             'active_tenants'       => Tenant::where('status', 'active')->count(),
+            'blocked_ips'          => IpBlacklist::where('is_active', true)
+                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                ->count(),
             'recent_activity'      => DB::table('activity_log')
                 ->latest()
                 ->limit(20)

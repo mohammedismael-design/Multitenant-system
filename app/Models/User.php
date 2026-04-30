@@ -20,7 +20,6 @@ class User extends Authenticatable
     use HasTenant, HasProfile, HasModulePermissions;
 
     protected $fillable = [
-        'tenant_id',
         'name',
         'email',
         'password',

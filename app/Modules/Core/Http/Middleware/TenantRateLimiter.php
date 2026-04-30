@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Http\Middleware;
 
+use App\Models\RateLimitLog;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
-use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 final class TenantRateLimiter
@@ -74,6 +75,7 @@ final class TenantRateLimiter
 
         if (!$result['allowed']) {
             $seconds = $result['retry_after'];
+            $this->logRateLimitHit($request, 'sliding_window', $limit, 'web');
 
             if ($request->header('X-Inertia')) {
                 return back()->withErrors(['rate_limit' => "Too many requests. Please wait {$seconds} seconds."]);
@@ -119,6 +121,7 @@ final class TenantRateLimiter
         $result = $this->tokenBucket($bucketKey, $burstCap, $refillRate);
 
         if (!$result['allowed']) {
+            $this->logRateLimitHit($request, 'token_bucket', $refillRate, 'api');
             return $this->tooManyResponse($refillRate, $result['retry_after']);
         }
 
@@ -258,6 +261,27 @@ LUA;
         }
 
         return 'global';
+    }
+
+    private function logRateLimitHit(Request $request, string $type, int $limit, string $layer): void
+    {
+        try {
+            $tenantId = app()->has('tenant') && app('tenant') !== null ? app('tenant')->id : null;
+
+            RateLimitLog::create([
+                'tenant_id'       => $tenantId,
+                'user_id'         => $request->user()?->id,
+                'ip_address'      => $request->ip(),
+                'endpoint'        => $request->path(),
+                'method'          => $request->method(),
+                'rate_limit_type' => $type,
+                'requests_count'  => 1,
+                'limit_value'     => $limit,
+                'blocked_at'      => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to log rate limit hit', ['error' => $e->getMessage()]);
+        }
     }
 
     private function tooManyResponse(int $limit, int $retryAfter): Response

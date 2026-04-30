@@ -20,13 +20,13 @@ interface SocDashboardProps extends PageProps {
 
 export default function SocDashboard() {
   const { stats } = usePage<SocDashboardProps>().props;
-  const s = stats ?? {} as SocStats;
+  const socStats = stats ?? {} as SocStats;
 
   const statCards = [
-    { label: 'Requests Today',  value: s.total_requests_today ?? 0, icon: Activity,    color: 'text-blue-600' },
-    { label: 'Failed Jobs',     value: s.failed_jobs_count    ?? 0, icon: AlertCircle, color: 'text-red-600' },
-    { label: 'Active Tenants',  value: s.active_tenants       ?? 0, icon: Building2,   color: 'text-green-600' },
-    { label: 'Blocked IPs',     value: s.blocked_ips          ?? 0, icon: ShieldAlert, color: 'text-orange-600' },
+    { label: 'Requests Today',  value: socStats.total_requests_today ?? 0, icon: Activity,    color: 'text-blue-600' },
+    { label: 'Failed Jobs',     value: socStats.failed_jobs_count    ?? 0, icon: AlertCircle, color: 'text-red-600' },
+    { label: 'Active Tenants',  value: socStats.active_tenants       ?? 0, icon: Building2,   color: 'text-green-600' },
+    { label: 'Blocked IPs',     value: socStats.blocked_ips          ?? 0, icon: ShieldAlert, color: 'text-orange-600' },
   ];
 
   return (
@@ -53,7 +53,7 @@ export default function SocDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {(s.recent_activity ?? []).slice(0, 20).map((entry) => (
+                {(socStats.recent_activity ?? []).slice(0, 20).map((entry) => (
                   <tr key={entry.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2.5 font-mono text-xs text-gray-700">{entry.event ?? entry.log_name}</td>
                     <td className="px-4 py-2.5 text-gray-600 max-w-xs truncate">{entry.description}</td>
@@ -62,7 +62,7 @@ export default function SocDashboard() {
                     <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap">{formatDate(entry.created_at)}</td>
                   </tr>
                 ))}
-                {(s.recent_activity ?? []).length === 0 && (
+                {(socStats.recent_activity ?? []).length === 0 && (
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">No recent activity</td></tr>
                 )}
               </tbody>

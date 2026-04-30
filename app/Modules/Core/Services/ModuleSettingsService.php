@@ -144,11 +144,23 @@ final class ModuleSettingsService
             return self::$schemaCache[$moduleKey];
         }
 
+        // Guard against path traversal: only allow lowercase alphanumeric + underscores
+        if (!preg_match('/^[a-z0-9_]+$/', $moduleKey)) {
+            throw new \InvalidArgumentException("Invalid module key '{$moduleKey}'.");
+        }
+
         $moduleName = ucfirst($moduleKey);
         $path = app_path("Modules/{$moduleName}/module.json");
 
+        // Ensure the resolved path stays within the modules directory
+        $modulesDir = app_path('Modules');
+        $realPath   = realpath(dirname($path));
+        if ($realPath === false || !str_starts_with($realPath, $modulesDir)) {
+            throw new \RuntimeException("module.json path is outside the modules directory.");
+        }
+
         if (!file_exists($path)) {
-            throw new \RuntimeException("module.json not found for module '{$moduleKey}' at path '{$path}'.");
+            throw new \RuntimeException("module.json not found for module '{$moduleKey}'.");
         }
 
         $contents = file_get_contents($path);
