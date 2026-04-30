@@ -89,7 +89,7 @@ export default function Login() {
                   />
                   Remember me
                 </label>
-                <Link href="/forgot-password" className="text-sm text-[#e57373] hover:underline">
+                <Link href="/forgot-password" className="text-sm text-slate-300 hover:text-white hover:underline">
                   Forgot password?
                 </Link>
               </div>

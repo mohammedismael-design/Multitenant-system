@@ -54,7 +54,8 @@ class SocController extends Controller
         }
 
         if ($request->filled('action')) {
-            $query->where('description', 'like', '%' . $request->action . '%');
+            $escaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $request->action);
+            $query->where('description', 'like', '%' . $escaped . '%');
         }
 
         if ($request->filled('causer_id')) {

@@ -43,10 +43,13 @@ class UserController extends Controller
             'is_active' => ['boolean'],
         ]);
 
-        User::withoutGlobalScopes()->create([
-            ...$data,
-            'password' => Hash::make($data['password']),
-        ]);
+        User::withoutGlobalScopes()->create(array_filter([
+            'name'      => $data['name'],
+            'email'     => $data['email'],
+            'password'  => Hash::make($data['password']),
+            'user_type' => $data['user_type'],
+            'is_active' => $data['is_active'] ?? true,
+        ]))->forceFill(['tenant_id' => $data['tenant_id'] ?? null])->save();
 
         return redirect()->route('super-admin.users.index')
             ->with('success', 'User created successfully.');
@@ -69,7 +72,11 @@ class UserController extends Controller
             unset($data['password']);
         }
 
-        $user->update($data);
+        // tenant_id is not in $fillable — set it via forceFill
+        $tenantId = array_key_exists('tenant_id', $data) ? $data['tenant_id'] : $user->tenant_id;
+        $fillableData = array_diff_key($data, ['tenant_id' => true]);
+
+        $user->fill($fillableData)->forceFill(['tenant_id' => $tenantId])->save();
 
         return redirect()->route('super-admin.users.index')
             ->with('success', 'User updated successfully.');
