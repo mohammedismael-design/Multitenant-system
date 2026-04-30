@@ -97,3 +97,19 @@ function filterNavigation(
         }))
         .filter((item) => (item.children ? item.children.length > 0 : true));
 }
+
+export const superAdminNavItems = [
+  { name: 'Dashboard',   href: '/super-admin',         icon: 'LayoutDashboard' },
+  { name: 'Tenants',     href: '/super-admin/tenants',  icon: 'Building2' },
+  { name: 'Modules',     href: '/super-admin/modules',  icon: 'Package' },
+  { name: 'Plans',       href: '/super-admin/plans',    icon: 'CreditCard' },
+  { name: 'Users',       href: '/super-admin/users',    icon: 'Users' },
+  { name: 'SOC',         href: '/soc',                  icon: 'Shield' },
+];
+
+export const socNavItems = [
+  { name: 'Dashboard',     href: '/soc',                  icon: 'LayoutDashboard' },
+  { name: 'Activity Logs', href: '/soc/activity-logs',    icon: 'Activity' },
+  { name: 'Rate Limits',   href: '/soc/rate-limit-logs',  icon: 'Gauge' },
+  { name: 'IP Management', href: '/soc/ip-management',    icon: 'Shield' },
+];

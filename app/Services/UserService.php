@@ -47,10 +47,11 @@ class UserService
         }
 
         return DB::transaction(function () use ($tenant, $data) {
-            return User::create(array_merge($data, [
-                'tenant_id' => $tenant->id,
-                'password'  => Hash::make($data['password']),
-            ]));
+            $user = new User(array_diff_key($data, ['password' => true]));
+            $user->tenant_id = $tenant->id;
+            $user->password  = Hash::make($data['password']);
+            $user->save();
+            return $user;
         });
     }
 

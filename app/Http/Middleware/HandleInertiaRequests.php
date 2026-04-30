@@ -25,12 +25,25 @@ class HandleInertiaRequests extends Middleware
                 ->toArray();
         }
 
+        $sharedUser = null;
+        if ($user) {
+            $sharedUser = [
+                'id'            => $user->id,
+                'name'          => $user->name,
+                'email'         => $user->email,
+                'user_type'     => $user->user_type,
+                'avatar'        => $user->avatar,
+                'phone'         => $user->phone,
+                'is_active'     => $user->is_active,
+                'last_login_at' => $user->last_login_at,
+                'permissions'   => $user->getAllPermissions()->pluck('name')->toArray(),
+                'roles'         => $user->getRoleNames()->toArray(),
+            ];
+        }
+
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $user ? array_merge($user->toArray(), [
-                    'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
-                    'roles'       => $user->getRoleNames()->toArray(),
-                ]) : null,
+                'user' => $sharedUser,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),
