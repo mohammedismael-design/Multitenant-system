@@ -1,14 +1,16 @@
 <?php
 
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
+use Inertia\Inertia;
 
-Route::inertia('/', 'welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::middleware(['auth', 'tenant'])->group(function () {
+    Route::get('/', fn () => Inertia::render('Dashboard'))->name('dashboard');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    // Tenant-scoped user management
+    Route::resource('users', UserController::class)->except(['show']);
 });
 
-require __DIR__.'/settings.php';
+require __DIR__.'/auth.php';
+require __DIR__.'/super-admin.php';
+require __DIR__.'/soc.php';

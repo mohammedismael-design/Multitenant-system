@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withProviders([
+        \App\Modules\Core\Providers\CoreServiceProvider::class,
+    ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
@@ -20,6 +23,19 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\IpBlacklistMiddleware::class,
+        ]);
+
+        $middleware->api(append: [
+            \App\Http\Middleware\IpBlacklistMiddleware::class,
+        ]);
+
+        $middleware->alias([
+            'tenant'       => \App\Http\Middleware\TenantMiddleware::class,
+            'super_admin'  => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'soc'          => \App\Http\Middleware\SocMiddleware::class,
+            'module'       => \App\Http\Middleware\ModuleAccessMiddleware::class,
+            'ip.blacklist' => \App\Http\Middleware\IpBlacklistMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
