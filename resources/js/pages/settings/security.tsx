@@ -1,7 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
+import { route } from 'ziggy-js';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -10,8 +10,6 @@ import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
-import { edit } from '@/routes/security';
-import { disable, enable } from '@/routes/two-factor';
 
 type Props = {
     canManageTwoFactor?: boolean;
@@ -63,7 +61,8 @@ export default function Security({
                 />
 
                 <Form
-                    {...SecurityController.update.form()}
+                    action={route('user-password.update')}
+                    method="put"
                     options={{
                         preserveScroll: true,
                     }}
@@ -165,7 +164,7 @@ export default function Security({
                             </p>
 
                             <div className="relative inline">
-                                <Form {...disable.form()}>
+                                <Form action={route('two-factor.disable')} method="delete">
                                     {({ processing }) => (
                                         <Button
                                             variant="destructive"
@@ -203,7 +202,8 @@ export default function Security({
                                     </Button>
                                 ) : (
                                     <Form
-                                        {...enable.form()}
+                                        action={route('two-factor.enable')}
+                                        method="post"
                                         onSuccess={() =>
                                             setShowSetupModal(true)
                                         }
@@ -243,7 +243,7 @@ Security.layout = {
     breadcrumbs: [
         {
             title: 'Security settings',
-            href: edit(),
+            href: route('security.edit'),
         },
     ],
 };
