@@ -6,6 +6,7 @@
 
         <title inertia>{{ config('app.name', 'Schoolzee') }}</title>
 
+        @routes
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/css/app.css"])
         @inertiaHead
